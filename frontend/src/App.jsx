@@ -98,7 +98,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: 'var(--bg-beige)',
+    backgroundColor: 'transparent',
   },
   main: {
     flexGrow: 1,

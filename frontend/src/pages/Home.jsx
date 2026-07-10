@@ -280,7 +280,7 @@ const styles = {
   },
   hero: {
     padding: '3rem 0',
-    backgroundColor: '#fffcf7',
+    backgroundColor: 'transparent',
     borderBottom: '1px solid var(--border-color)',
     position: 'relative',
     overflow: 'hidden',
