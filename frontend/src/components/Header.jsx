@@ -27,6 +27,9 @@ const Header = () => {
       <div className="container" style={styles.container}>
         <Link to="/" style={styles.logoContainer}>
           <img src={logoImg} alt="ASHLY'S Saloon" className="header-logo" />
+          <span className="brand-title">
+            ASHLY'S <span className="brand-title-sub">Saloon</span>
+          </span>
         </Link>
 
         {/* Desktop Menu */}
