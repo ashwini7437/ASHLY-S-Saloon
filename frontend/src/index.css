@@ -305,5 +305,37 @@ button, input, select, textarea {
   font-weight: 300;
   font-style: italic;
   font-size: 1.5rem;
-  -webkit-text-fill-color: var(--primary); /* ensure color overrides transparent background clip */
+}
+
+/* Scrolling Announcement Bar styling */
+.announcement-bar {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+  color: var(--secondary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 0;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.announcement-track {
+  display: inline-block;
+  animation: marquee 25s linear infinite;
+}
+
+.announcement-track span {
+  display: inline-block;
+  padding-right: 4rem; /* Spacing between scrolling items */
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-33.3333%, 0, 0);
+  }
 }

@@ -23,8 +23,16 @@ const Header = () => {
   ];
 
   return (
-    <header style={styles.header}>
-      <div className="container" style={styles.container}>
+    <>
+      <div className="announcement-bar">
+        <div className="announcement-track">
+          <span>🌧️ Monsoon Offer: Flat 10% discount on every service! Valid until July 31, 2026 🌧️</span>
+          <span>🌧️ Monsoon Offer: Flat 10% discount on every service! Valid until July 31, 2026 🌧️</span>
+          <span>🌧️ Monsoon Offer: Flat 10% discount on every service! Valid until July 31, 2026 🌧️</span>
+        </div>
+      </div>
+      <header style={styles.header}>
+        <div className="container" style={styles.container}>
         <Link to="/" style={styles.logoContainer}>
           <img src={logoImg} alt="ASHLY'S Saloon" className="header-logo" />
           <span className="brand-title">
@@ -145,6 +153,7 @@ const Header = () => {
         </div>
       )}
     </header>
+    </>
   );
 };
 
