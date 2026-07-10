@@ -272,4 +272,14 @@ button, input, select, textarea {
   }
 }
 
-
+/* Premium Glowing Logo styling */
+.header-logo {
+  height: 52px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(197, 168, 128, 0.55));
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+}
+.header-logo:hover {
+  transform: scale(1.08) rotate(1deg);
+  filter: drop-shadow(0 0 15px rgba(212, 131, 143, 0.85));
+}

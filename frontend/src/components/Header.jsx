@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Menu, X, Sparkles, User, LogOut, Calendar, LayoutDashboard } from 'lucide-react';
+import logoImg from '../assets/logo.png';
 
 const Header = () => {
   const { user, profile, logout } = useAuth();
@@ -25,8 +26,7 @@ const Header = () => {
     <header style={styles.header}>
       <div className="container" style={styles.container}>
         <Link to="/" style={styles.logoContainer}>
-          <Sparkles size={24} color="var(--accent)" />
-          <span style={styles.logoText}>ASHLY'S <span style={styles.logoSub}>Saloon</span></span>
+          <img src={logoImg} alt="ASHLY'S Saloon" className="header-logo" />
         </Link>
 
         {/* Desktop Menu */}
