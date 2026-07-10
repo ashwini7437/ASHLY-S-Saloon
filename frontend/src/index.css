@@ -40,7 +40,7 @@ body {
   font-family: var(--font-body);
   background-color: var(--bg-beige);
   background-image: 
-    linear-gradient(rgba(253, 251, 247, 0.94), rgba(253, 251, 247, 0.94)),
+    linear-gradient(rgba(253, 251, 247, 0.78), rgba(253, 251, 247, 0.78)),
     url('./assets/vecteezy_bg.jpeg');
   background-size: cover;
   background-position: center;
