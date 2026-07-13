@@ -111,12 +111,30 @@ const AdminDashboard = () => {
 
       // Merge local storage offers for offline/sandbox fallback
       const localOffers = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      const deletedOfferIds = JSON.parse(localStorage.getItem('ashly_deleted_offers') || '[]');
+      const editedOffers = JSON.parse(localStorage.getItem('ashly_edited_offers') || '[]');
+
+      // 1. Combine DB offers and local custom offers
+      let combinedOffers = [...finalOffers];
       if (localOffers.length > 0) {
-        // De-duplicate in case some are already in dbOffers
-        const dbTitles = new Set(finalOffers.map(o => o.title));
+        const dbTitles = new Set(combinedOffers.map(o => o.title));
         const filteredLocal = localOffers.filter(o => !dbTitles.has(o.title));
-        finalOffers = [...filteredLocal, ...finalOffers];
+        combinedOffers = [...filteredLocal, ...combinedOffers];
       }
+
+      // 2. Apply local edits to the combined list (by ID or Title)
+      combinedOffers = combinedOffers.map(o => {
+        const edited = editedOffers.find(e => e.id === o.id || e.title === o.title);
+        return edited ? { ...o, ...edited } : o;
+      });
+
+      // 3. Filter out deleted offers (by ID or Title)
+      combinedOffers = combinedOffers.filter(o => {
+        const isDeleted = deletedOfferIds.includes(o.id) || deletedOfferIds.includes(o.title);
+        return !isDeleted;
+      });
+
+      finalOffers = combinedOffers;
 
       // Populate dummy customers if none
       if (finalCustomers.length === 0) {
@@ -226,7 +244,15 @@ const AdminDashboard = () => {
       const updatedLocal = local.map(o => o.id === editingOfferId ? { ...o, ...offerData } : o);
       localStorage.setItem('ashly_local_offers', JSON.stringify(updatedLocal));
 
-      // 2. Update in Supabase
+      // 2. Add/update in local edited tracking list
+      const edited = JSON.parse(localStorage.getItem('ashly_edited_offers') || '[]');
+      const updatedEdited = [
+        { id: editingOfferId, ...offerData },
+        ...edited.filter(o => o.id !== editingOfferId && o.title !== offerData.title)
+      ];
+      localStorage.setItem('ashly_edited_offers', JSON.stringify(updatedEdited));
+
+      // 3. Update in Supabase
       try {
         if (typeof editingOfferId === 'string' && !editingOfferId.startsWith('o-')) {
           const { error: upErr } = await supabase.from('offers').update(offerData).eq('id', editingOfferId);
@@ -272,7 +298,21 @@ const AdminDashboard = () => {
 
   const handleDeleteOffer = async (offerId) => {
     if (confirm("Are you sure you want to end/delete this promotional offer?")) {
-      // 1. Delete from Supabase
+      // 1. Add to local deleted tracking
+      const deleted = JSON.parse(localStorage.getItem('ashly_deleted_offers') || '[]');
+      const targetOffer = offers.find(o => o.id === offerId);
+      const newDeleted = [...deleted, offerId];
+      if (targetOffer) {
+        newDeleted.push(targetOffer.title);
+      }
+      localStorage.setItem('ashly_deleted_offers', JSON.stringify(newDeleted));
+
+      // 2. Delete from local storage
+      const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      const filtered = local.filter(o => o.id !== offerId);
+      localStorage.setItem('ashly_local_offers', JSON.stringify(filtered));
+
+      // 3. Delete from Supabase
       try {
         if (typeof offerId === 'string' && !offerId.startsWith('o-')) {
           const { error: delErr } = await supabase.from('offers').delete().eq('id', offerId);
@@ -282,12 +322,7 @@ const AdminDashboard = () => {
         console.warn("DB delete failed, operating locally");
       }
 
-      // 2. Delete from local storage
-      const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
-      const filtered = local.filter(o => o.id !== offerId);
-      localStorage.setItem('ashly_local_offers', JSON.stringify(filtered));
-
-      // 3. Update state
+      // 4. Update state
       setOffers(prev => prev.filter(o => o.id !== offerId));
       fetchAllData();
     }
