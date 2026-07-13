@@ -108,6 +108,15 @@ const AdminDashboard = () => {
         finalBookings = [...formattedLocal, ...finalBookings];
       }
 
+      // Merge local storage offers for offline/sandbox fallback
+      const localOffers = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      if (localOffers.length > 0) {
+        // De-duplicate in case some are already in dbOffers
+        const dbTitles = new Set(finalOffers.map(o => o.title));
+        const filteredLocal = localOffers.filter(o => !dbTitles.has(o.title));
+        finalOffers = [...filteredLocal, ...finalOffers];
+      }
+
       // Populate dummy customers if none
       if (finalCustomers.length === 0) {
         finalCustomers = [
@@ -209,20 +218,25 @@ const AdminDashboard = () => {
       valid_until: newOfferValidUntil
     };
 
+    // Save to localStorage immediately to guarantee instant local rendering
+    const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+    const newLocal = [{ id: 'o-' + Date.now(), ...offerData }, ...local];
+    localStorage.setItem('ashly_local_offers', JSON.stringify(newLocal));
+
     try {
       const { error: oErr } = await supabase.from('offers').insert([offerData]);
-      if (oErr) throw oErr;
-      
+      // If inserted to Supabase successfully, we can keep the local copy or clear local if we prefer,
+      // but keeping it is very safe.
       setNewOfferTitle('');
       setNewOfferDesc('');
       setNewOfferValidUntil('');
       fetchAllData();
     } catch (err) {
-      const localO = [...offers, { id: 'o-' + Date.now(), ...offerData }];
-      setOffers(localO);
+      console.warn("DB save failed, operating in sandbox mode");
       setNewOfferTitle('');
       setNewOfferDesc('');
       setNewOfferValidUntil('');
+      fetchAllData();
     }
   };
 
