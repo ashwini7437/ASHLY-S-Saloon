@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
-import { Calendar, Search, Users, Sparkles, IndianRupee, CheckCircle2, XCircle, AlertCircle, ShoppingBag, PlusCircle, Trash, Star } from 'lucide-react';
+import { Calendar, Search, Users, Sparkles, IndianRupee, CheckCircle2, XCircle, AlertCircle, ShoppingBag, PlusCircle, Trash, Star, Edit } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -33,6 +33,7 @@ const AdminDashboard = () => {
   const [newOfferDesc, setNewOfferDesc] = useState('');
   const [newOfferDiscount, setNewOfferDiscount] = useState(10);
   const [newOfferValidUntil, setNewOfferValidUntil] = useState('');
+  const [editingOfferId, setEditingOfferId] = useState(null);
 
   useEffect(() => {
     fetchAllData();
@@ -218,26 +219,94 @@ const AdminDashboard = () => {
       valid_until: newOfferValidUntil
     };
 
-    // Save to localStorage immediately to guarantee instant local rendering
-    const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
-    const newLocal = [{ id: 'o-' + Date.now(), ...offerData }, ...local];
-    localStorage.setItem('ashly_local_offers', JSON.stringify(newLocal));
+    if (editingOfferId) {
+      // Update Mode
+      // 1. Update in local storage
+      const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      const updatedLocal = local.map(o => o.id === editingOfferId ? { ...o, ...offerData } : o);
+      localStorage.setItem('ashly_local_offers', JSON.stringify(updatedLocal));
 
-    try {
-      const { error: oErr } = await supabase.from('offers').insert([offerData]);
-      // If inserted to Supabase successfully, we can keep the local copy or clear local if we prefer,
-      // but keeping it is very safe.
+      // 2. Update in Supabase
+      try {
+        if (typeof editingOfferId === 'string' && !editingOfferId.startsWith('o-')) {
+          const { error: upErr } = await supabase.from('offers').update(offerData).eq('id', editingOfferId);
+          if (upErr) throw upErr;
+        }
+      } catch (err) {
+        console.warn("DB update failed, operating locally");
+      }
+
+      setEditingOfferId(null);
       setNewOfferTitle('');
       setNewOfferDesc('');
+      setNewOfferDiscount(10);
       setNewOfferValidUntil('');
       fetchAllData();
-    } catch (err) {
-      console.warn("DB save failed, operating in sandbox mode");
-      setNewOfferTitle('');
-      setNewOfferDesc('');
-      setNewOfferValidUntil('');
+    } else {
+      // Insert Mode
+      // 1. Save to localStorage immediately
+      const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      const newLocal = [{ id: 'o-' + Date.now(), ...offerData }, ...local];
+      localStorage.setItem('ashly_local_offers', JSON.stringify(newLocal));
+
+      // 2. Insert to Supabase
+      try {
+        const { error: oErr } = await supabase.from('offers').insert([offerData]);
+        if (oErr) throw oErr;
+        
+        setNewOfferTitle('');
+        setNewOfferDesc('');
+        setNewOfferDiscount(10);
+        setNewOfferValidUntil('');
+        fetchAllData();
+      } catch (err) {
+        console.warn("DB save failed, operating in sandbox mode");
+        setNewOfferTitle('');
+        setNewOfferDesc('');
+        setNewOfferDiscount(10);
+        setNewOfferValidUntil('');
+        fetchAllData();
+      }
+    }
+  };
+
+  const handleDeleteOffer = async (offerId) => {
+    if (confirm("Are you sure you want to end/delete this promotional offer?")) {
+      // 1. Delete from Supabase
+      try {
+        if (typeof offerId === 'string' && !offerId.startsWith('o-')) {
+          const { error: delErr } = await supabase.from('offers').delete().eq('id', offerId);
+          if (delErr) throw delErr;
+        }
+      } catch (err) {
+        console.warn("DB delete failed, operating locally");
+      }
+
+      // 2. Delete from local storage
+      const local = JSON.parse(localStorage.getItem('ashly_local_offers') || '[]');
+      const filtered = local.filter(o => o.id !== offerId);
+      localStorage.setItem('ashly_local_offers', JSON.stringify(filtered));
+
+      // 3. Update state
+      setOffers(prev => prev.filter(o => o.id !== offerId));
       fetchAllData();
     }
+  };
+
+  const handleEditOffer = (offer) => {
+    setEditingOfferId(offer.id);
+    setNewOfferTitle(offer.title);
+    setNewOfferDesc(offer.description || '');
+    setNewOfferDiscount(offer.discount_percent);
+    setNewOfferValidUntil(offer.valid_until);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingOfferId(null);
+    setNewOfferTitle('');
+    setNewOfferDesc('');
+    setNewOfferDiscount(10);
+    setNewOfferValidUntil('');
   };
 
   // Analytics helper calculations
@@ -558,7 +627,9 @@ const AdminDashboard = () => {
           {activeTab === 'offers' && (
             <div className="admin-services-grid animate-fade-in">
               <div style={styles.formCard} className="premium-card">
-                <h3 style={styles.formTitle}><PlusCircle size={18} /> Create Promotional Offer</h3>
+                <h3 style={styles.formTitle}>
+                  <PlusCircle size={18} /> {editingOfferId ? 'Edit Promotional Offer' : 'Create Promotional Offer'}
+                </h3>
                 <form onSubmit={handleAddOffer} style={styles.form}>
                   <div style={styles.formRow}>
                     <div style={styles.inputCol}>
@@ -610,7 +681,29 @@ const AdminDashboard = () => {
                     />
                   </div>
 
-                  <button type="submit" className="btn-primary">Launch Promo Offer</button>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+                      {editingOfferId ? 'Update Promo Offer' : 'Launch Promo Offer'}
+                    </button>
+                    {editingOfferId && (
+                      <button 
+                        type="button" 
+                        onClick={handleCancelEdit}
+                        style={{
+                          background: 'none',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          padding: '0.75rem 1rem',
+                          fontFamily: 'inherit',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
 
@@ -618,13 +711,45 @@ const AdminDashboard = () => {
                 <h3 style={styles.formTitle}><ShoppingBag size={18} /> Active Promos</h3>
                 <div style={styles.serviceCatalogList}>
                   {offers.map(o => (
-                    <div key={o.id} style={styles.catalogItem}>
-                      <div>
+                    <div key={o.id} style={{ ...styles.catalogItem, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1, paddingRight: '1rem' }}>
                         <strong>{o.title}</strong>
                         <p style={styles.catalogItemSub}>{o.description}</p>
                         <div style={styles.catalogItemSub}>
                           <span>{o.discount_percent}% OFF</span> • <span>Until: {o.valid_until}</span>
                         </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => handleEditOffer(o)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#c5a880',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          title="Edit Offer"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteOffer(o.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#d4838f',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          title="Delete Offer"
+                        >
+                          <Trash size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
