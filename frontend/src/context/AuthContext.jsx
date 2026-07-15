@@ -140,22 +140,18 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('ashly_current_session'); // Clean up sandbox session
       return data;
     } catch (err) {
-      if (isNetworkError(err)) {
-        initSandbox();
-        const users = JSON.parse(localStorage.getItem('ashly_sandbox_users') || '[]');
-        const found = users.find(u => u.email === email && u.password === password);
-        if (found) {
-          const sessionUser = { id: found.id, email: found.email };
-          setUser(sessionUser);
-          setProfile(found);
-          setRole(found.role);
-          localStorage.setItem('ashly_current_session', JSON.stringify(found));
-          setLoading(false);
-          return { user: sessionUser };
-        } else {
-          setLoading(false);
-          throw new Error('Invalid credentials. For sandbox testing, use: admin@ashlysaloon.com / adminpassword');
-        }
+      // Check if it exists in local sandbox users as a fallback (whether offline or database conflict)
+      initSandbox();
+      const users = JSON.parse(localStorage.getItem('ashly_sandbox_users') || '[]');
+      const found = users.find(u => u.email === email && u.password === password);
+      if (found) {
+        const sessionUser = { id: found.id, email: found.email };
+        setUser(sessionUser);
+        setProfile(found);
+        setRole(found.role);
+        localStorage.setItem('ashly_current_session', JSON.stringify(found));
+        setLoading(false);
+        return { user: sessionUser };
       }
       setLoading(false);
       throw err;
