@@ -196,6 +196,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteCustomer = async (customerId) => {
+    if (confirm("Are you sure you want to delete this customer? This will remove their profile.")) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', customerId);
+        if (error) throw error;
+        fetchAllData();
+      } catch (err) {
+        setError('Failed to delete customer: ' + err.message);
+      }
+    }
+  };
+
   const handleAddService = async (e) => {
     e.preventDefault();
     const serviceData = {
@@ -525,6 +540,7 @@ const AdminDashboard = () => {
                       <th style={styles.th}>Email Address</th>
                       <th style={styles.th}>Phone Number</th>
                       <th style={styles.th}>Joined On</th>
+                      <th style={styles.th} style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -534,6 +550,21 @@ const AdminDashboard = () => {
                         <td style={styles.td}>{c.email}</td>
                         <td style={styles.td}>{c.phone || 'N/A'}</td>
                         <td style={styles.td}>{new Date(c.created_at).toLocaleDateString()}</td>
+                        <td style={{ ...styles.td, textAlign: 'right' }}>
+                          <button
+                            onClick={() => handleDeleteCustomer(c.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#d4838f',
+                              cursor: 'pointer',
+                              padding: '4px'
+                            }}
+                            title="Delete Customer"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

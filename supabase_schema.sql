@@ -19,6 +19,14 @@ CREATE POLICY "Allow public read for profiles" ON public.profiles
 CREATE POLICY "Allow users to update their own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
+CREATE POLICY "Allow admin to delete profiles" ON public.profiles
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
 -- Trigger to create profile on sign up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
